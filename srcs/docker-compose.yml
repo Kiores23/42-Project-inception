@@ -1,0 +1,61 @@
+version: '3'
+
+volumes:
+  wordpress:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: $WP_CACHE
+  mariadb:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: $DB_CACHE
+
+networks:
+  inception:
+    driver: bridge
+
+services:
+  mariadb:
+    container_name: mariadb
+    build:
+      context: requirements/mariadb
+    volumes:
+      - mariadb:$DB_PATH
+    networks:
+      - inception
+    expose:
+      - $DB_PORT
+    env_file: .env
+    restart: unless-stopped
+  nginx:
+    container_name: nginx
+    depends_on :
+      - wordpress
+    build:
+      context: requirements/nginx
+    volumes:
+      - wordpress:$WP_PATH
+    networks:
+      - inception
+    ports:
+      - $LOCALHOST:$LOCALHOST
+    env_file: .env
+    restart: on-failure
+  wordpress:
+    container_name: wordpress
+    depends_on:
+      - mariadb
+    build:
+      context: requirements/wordpress
+    volumes:
+      - wordpress:$WP_PATH
+    networks:
+      - inception
+    expose:
+      - $WP_PORT
+    env_file: .env
+    restart: on-failure
